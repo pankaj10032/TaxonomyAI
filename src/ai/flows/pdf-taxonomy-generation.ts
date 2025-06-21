@@ -33,7 +33,16 @@ const prompt = ai.definePrompt({
   name: 'pdfTaxonomyPrompt',
   input: {schema: PdfTaxonomyInputSchema},
   output: {schema: PdfTaxonomyOutputSchema},
-  prompt: `Analyze the provided PDF document and generate a detailed taxonomy of its content.\n  Identify the main topics, subtopics, and nested subtopics (to any level) based on the document's structure and content. \n  For each topic and subtopic, provide a concise summary (2-3 sentences) capturing its key points. \n  Cross-reference extracted content to avoid redundancy and ensure coherence.\n  Output the taxonomy in a hierarchical JSON format with fields for title, summary, and subtopics (if any).\n  Exclude irrelevant sections like headers, footers, or boilerplate text, and focus on meaningful content.\n  If the PDF contains ambiguous or unclear sections, make reasoned inferences based on context, prioritizing specificity and relevance.\n  \n  Here is the PDF Document: {{media url=pdfDataUri}}`,
+  prompt: `Analyze the provided PDF document and generate a detailed taxonomy of its content.
+Identify the main topics, subtopics, and nested subtopics (to any level) based on the document's structure and content.
+For each topic and subtopic, provide a concise summary (2-3 sentences) capturing its key points.
+Use Retrieval-Augmented Generation (RAG) to extract relevant information from the PDF, ensuring accuracy and context-awareness.
+Cross-reference extracted content to avoid redundancy and ensure coherence.
+Output the taxonomy in a hierarchical JSON format with fields for title, summary, and subtopics (if any).
+Exclude irrelevant sections like headers, footers, or boilerplate text, and focus on meaningful content.
+If the PDF contains ambiguous or unclear sections, make reasoned inferences based on context, prioritizing specificity and relevance.
+
+Here is the PDF Document: {{media url=pdfDataUri}}`,
 });
 
 const generatePdfTaxonomyFlow = ai.defineFlow(
