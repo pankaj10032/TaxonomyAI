@@ -89,8 +89,16 @@ export function TaxonomyGenerator() {
       } catch (e) {
         console.error(e);
         let errorMessage = "An error occurred during taxonomy generation. Please try again.";
-        if (e instanceof Error && (e.message.includes('503') || e.message.toLowerCase().includes('overloaded'))) {
-          errorMessage = "The AI service is currently busy. Please wait a moment and try again.";
+        if (e instanceof Error) {
+            if (e.message.includes('503') || e.message.toLowerCase().includes('overloaded')) {
+              errorMessage = "The AI service is currently busy. Please wait a moment and try again.";
+            } else if (e.message.toLowerCase().includes('deadline exceeded')) {
+                errorMessage = "The request timed out, which can happen with large documents. Please try a smaller page range or a simpler document.";
+            } else if (e.message.toLowerCase().includes('invalid') || e.message.toLowerCase().includes('unexpected') || e.message.toLowerCase().includes('json')) {
+                errorMessage = "The AI returned a response that could not be processed. This may be a temporary issue. Please try again.";
+            } else {
+                errorMessage = "An unexpected server error occurred. Please try again later.";
+            }
         }
         setError(errorMessage);
       } finally {
