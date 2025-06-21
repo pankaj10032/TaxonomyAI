@@ -26,7 +26,7 @@ export function TaxonomyDisplay({ data }: TaxonomyDisplayProps) {
   return (
     <Accordion type="multiple" className="w-full">
       {data.map((item, index) => (
-        <AccordionItem value={`item-${item.title}-${index}`} key={item.title + index}>
+        <AccordionItem value={`item-${item.title}-${index}`} key={`item-${item.title}-${index}`}>
           <AccordionTrigger className="text-left hover:no-underline">
             <div className="flex items-center gap-3">
               {item.subtopics && item.subtopics.length > 0 ? (
