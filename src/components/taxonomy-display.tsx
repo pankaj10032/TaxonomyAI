@@ -61,8 +61,12 @@ export function TaxonomyDisplay({ data }: TaxonomyDisplayProps) {
                         <Table className="h-5 w-5 text-accent flex-shrink-0 mt-1" />
                       }
                       <div className="flex-1">
-                        <span className="font-semibold capitalize">{info.type}</span>
-                        <p className="text-sm text-muted-foreground">{info.description}</p>
+                        <div className="flex justify-between items-start">
+                            <span className="font-semibold capitalize">{info.type}</span>
+                            <span className="text-xs text-muted-foreground">Page {info.pageNumber}</span>
+                        </div>
+                        {info.caption && <p className="text-sm font-medium italic text-muted-foreground">"{info.caption}"</p>}
+                        <p className="text-sm text-muted-foreground mt-1">{info.description}</p>
                       </div>
                     </li>
                   ))}

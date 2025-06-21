@@ -15,6 +15,8 @@ import type {TaxonomyNode} from '@/lib/types';
 const ImageTableInfoSchema = z.object({
   type: z.enum(['image', 'table']).describe("The type of content, either 'image' or 'table'."),
   description: z.string().describe("A detailed description of the image or a summary of the table's data."),
+  pageNumber: z.number().describe('The page number where the image or table is located.'),
+  caption: z.string().optional().describe('The caption of the image or table, if available.'),
 });
 
 const TaxonomyNodeSchema: z.ZodType<TaxonomyNode> = z.object({
@@ -47,11 +49,6 @@ const PdfTaxonomyInputSchema = z.object({
     .describe(
       "A PDF document, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  depth: z
-    .number()
-    .optional()
-    .default(3)
-    .describe('The maximum depth of nested subtopics to generate.'),
   pageStart: z.number().optional().describe('The starting page for analysis.'),
   pageEnd: z.number().optional().describe('The ending page for analysis.'),
 });
@@ -113,20 +110,20 @@ const prompt = ai.definePrompt({
   input: {schema: PdfTaxonomyInputSchema},
   output: {schema: AIGeneratedOutputSchema},
   prompt: `You are an expert in document analysis and content structuring, equipped with advanced RAG and multimodal analysis capabilities.
-Your task is to analyze the provided PDF document and generate a comprehensive, hierarchical taxonomy of its content based on the user's specifications.
+Your task is to analyze the provided PDF document and generate a comprehensive, hierarchical taxonomy of its content with an unbounded hierarchy depth.
 
 **Analysis Parameters:**
-- **Topic Depth:** Generate topics and subtopics up to a maximum depth of {{{depth}}} levels.
+- **Topic Depth:** Generate topics and subtopics to the deepest possible level as inferred from the document's structure and content. Do not limit the depth.
 - **Page Range:** Analyze content from page {{#if pageStart}}{{{pageStart}}}{{else}}1{{/if}} to {{#if pageEnd}}{{{pageEnd}}}{{else}}the end{{/if}}.
 
 **Instructions:**
-1.  **Parse and Extract (Text, Images, Tables):** Parse the specified page range of the PDF. Use Retrieval-Augmented Generation (RAG) with semantic clustering to identify and group related concepts. Analyze text, images, and tables to ensure comprehensive understanding.
-2.  **Identify Structure:** Identify main topics, subtopics, and nested subtopics up to the specified depth.
-3.  **Entity-Based Summarization:** For each topic, generate a concise 2-3 sentence summary. **Crucially, prioritize sentences that contain exactly one or two named entities (like people, organizations, or locations).** If no such sentences exist, create a general summary.
+1.  **Parse and Extract (Text, Images, Tables):** Parse the specified page range of the PDF. Use Retrieval-Augmented Generation (RAG) with advanced semantic clustering to identify and group related concepts. Analyze text, images, and tables to ensure comprehensive understanding.
+2.  **Identify Unbounded Hierarchy:** Identify main topics, subtopics, and nested subtopics, creating as many levels as are present in the document's logical structure.
+3.  **Entity-Based Summarization:** For each topic, generate a concise 2-3 sentence summary. **Crucially, act as if you are using an NLP tool. Prioritize sentences from the document that contain exactly one or two named entities (like people, organizations, locations).** If no such sentences exist, create a general summary based on the most relevant information.
 4.  **Image & Table Analysis:**
-    - Identify important images, figures, and tables relevant to each topic.
+    - Identify important images, figures, and tables relevant to each topic. Prioritize those with high relevance (e.g., containing entities, central to the topic, or frequently referenced).
     - For each, provide a detailed description. For images, describe what they depict. For tables, summarize their key data and findings.
-    - Populate the \`image_table_info\` field for each topic with this information.
+    - Populate the \`image_table_info\` field for each topic with this information, including the page number and caption if available.
 5.  **Assign Confidence Score:** For each topic, assign a confidence score from 0-100 based on the relevance, clarity of the extracted information, and entity density.
 6.  **Filter Noise:** Intelligently exclude irrelevant sections like headers, footers, page numbers, tables of contents, and boilerplate text. Focus only on the substantive content.
 7.  **Handle Mathematics:** If the document contains mathematical formulas or equations, preserve them accurately in summaries or descriptions where relevant.

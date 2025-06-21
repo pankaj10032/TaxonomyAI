@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { generatePdfTaxonomy } from "@/ai/flows/pdf-taxonomy-generation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { TaxonomyDisplay } from "./taxonomy-display";
 import type { TaxonomyResult } from "@/lib/types";
 import { UploadCloud, File, X, AlertCircle, Info, BookOpen, Camera } from "lucide-react";
@@ -19,9 +18,31 @@ export function TaxonomyGenerator() {
   const [taxonomyResult, setTaxonomyResult] = useState<TaxonomyResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [depth, setDepth] = useState([3]);
   const [pageStart, setPageStart] = useState("");
   const [pageEnd, setPageEnd] = useState("");
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoading) {
+      setProgress(10);
+      timer = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(timer);
+            return 95;
+          }
+          return prev + 5;
+        });
+      }, 800);
+    } else {
+      setProgress(0);
+    }
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isLoading]);
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -60,7 +81,6 @@ export function TaxonomyGenerator() {
         const pdfDataUri = reader.result as string;
         const result = await generatePdfTaxonomy({ 
           pdfDataUri,
-          depth: depth[0],
           pageStart: pageStart ? parseInt(pageStart, 10) : undefined,
           pageEnd: pageEnd ? parseInt(pageEnd, 10) : undefined,
          });
@@ -77,7 +97,7 @@ export function TaxonomyGenerator() {
       setError("Failed to read the file.");
       setIsLoading(false);
     };
-  }, [file, depth, pageStart, pageEnd]);
+  }, [file, pageStart, pageEnd]);
 
   return (
     <div className="w-full space-y-8">
@@ -122,10 +142,6 @@ export function TaxonomyGenerator() {
           <div className="space-y-6 rounded-lg border p-4">
             <h3 className="font-headline text-lg font-medium">Analysis Options</h3>
             <div className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="depth-slider">Taxonomy Depth: {depth[0]}</Label>
-                <Slider id="depth-slider" min={1} max={5} step={1} value={depth} onValueChange={setDepth} />
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="page-start">Page Start</Label>
@@ -154,21 +170,18 @@ export function TaxonomyGenerator() {
       )}
 
       {isLoading && (
-        <Card>
+         <Card>
             <CardHeader>
                 <CardTitle className="font-headline text-2xl">Generating Taxonomy</CardTitle>
-                <CardDescription>This may take a moment. The AI is parsing, extracting, and structuring the content.</CardDescription>
+                <CardDescription>The AI is performing a deep analysis. This may take a moment.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2 p-2">
-                    <Skeleton className="h-8 w-3/4" />
-                    <div className="pl-8 space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-5/6" />
-                    </div>
-                </div>
-                <div className="space-y-2 p-2">
-                    <Skeleton className="h-8 w-1/2" />
+            <CardContent className="pt-4">
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                      <p>Parsing PDF, analyzing content & generating hierarchy...</p>
+                  </div>
+                  <Progress value={progress} className="w-full" />
                 </div>
             </CardContent>
         </Card>

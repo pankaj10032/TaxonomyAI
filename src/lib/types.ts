@@ -1,6 +1,8 @@
 export interface ImageTableInfo {
   type: "image" | "table";
   description: string;
+  pageNumber: number;
+  caption?: string;
 }
 
 export interface TaxonomyNode {
