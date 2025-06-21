@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { generatePdfTaxonomy } from "@/ai/flows/pdf-taxonomy-generation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TaxonomyDisplay, type TaxonomyNode } from "./taxonomy-display";
+import { TaxonomyDisplay } from "./taxonomy-display";
+import type { TaxonomyNode } from "@/lib/types";
 import { UploadCloud, File, X, AlertCircle } from "lucide-react";
 
 export function TaxonomyGenerator() {

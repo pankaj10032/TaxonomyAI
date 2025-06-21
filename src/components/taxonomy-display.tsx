@@ -7,12 +7,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { FolderTree, FileText } from "lucide-react";
-
-export interface TaxonomyNode {
-  title: string;
-  summary: string;
-  subtopics?: TaxonomyNode[];
-}
+import type { TaxonomyNode } from "@/lib/types";
 
 interface TaxonomyDisplayProps {
   data: TaxonomyNode[];
