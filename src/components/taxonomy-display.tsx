@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { FolderTree, FileText } from "lucide-react";
+import { FolderTree, FileText, Image, Table } from "lucide-react";
 import type { TaxonomyNode } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 
@@ -47,8 +47,29 @@ export function TaxonomyDisplay({ data }: TaxonomyDisplayProps) {
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="pl-8 border-l-2 border-primary/20 ml-2.5">
+            <div className="pl-8 border-l-2 border-primary/20 ml-2.5 space-y-4">
               <p className="pb-4 text-muted-foreground">{item.summary}</p>
+              
+              {item.image_table_info && item.image_table_info.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold font-headline text-sm">Visual Content Analysis</h4>
+                  <ul className="space-y-2">
+                  {item.image_table_info.map((info, infoIndex) => (
+                    <li key={infoIndex} className="flex items-start gap-3 p-3 rounded-md bg-muted/50">
+                      {info.type === 'image' ? 
+                        <Image className="h-5 w-5 text-accent flex-shrink-0 mt-1" /> : 
+                        <Table className="h-5 w-5 text-accent flex-shrink-0 mt-1" />
+                      }
+                      <div className="flex-1">
+                        <span className="font-semibold capitalize">{info.type}</span>
+                        <p className="text-sm text-muted-foreground">{info.description}</p>
+                      </div>
+                    </li>
+                  ))}
+                  </ul>
+                </div>
+              )}
+
               {item.subtopics && item.subtopics.length > 0 && (
                 <TaxonomyDisplay data={item.subtopics} />
               )}

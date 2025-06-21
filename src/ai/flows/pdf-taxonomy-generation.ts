@@ -12,6 +12,11 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import type {TaxonomyNode} from '@/lib/types';
 
+const ImageTableInfoSchema = z.object({
+  type: z.enum(['image', 'table']).describe("The type of content, either 'image' or 'table'."),
+  description: z.string().describe("A detailed description of the image or a summary of the table's data."),
+});
+
 const TaxonomyNodeSchema: z.ZodType<TaxonomyNode> = z.object({
   title: z.string().describe('The title of the topic or subtopic.'),
   summary: z
@@ -30,6 +35,10 @@ const TaxonomyNodeSchema: z.ZodType<TaxonomyNode> = z.object({
     .array(z.lazy(() => TaxonomyNodeSchema))
     .optional()
     .describe('A list of nested subtopics, if any.'),
+  image_table_info: z
+    .array(ImageTableInfoSchema)
+    .optional()
+    .describe('A list of extracted data from relevant images or tables.'),
 });
 
 const PdfTaxonomyInputSchema = z.object({
@@ -61,6 +70,9 @@ const AIGeneratedOutputSchema = z.object({
       .describe(
         'The page range that was analyzed (e.g., "1-10" or "all").'
       ),
+    imagesTablesAnalyzed: z
+      .number()
+      .describe('The total number of images and tables analyzed.'),
   }),
 });
 
@@ -100,7 +112,7 @@ const prompt = ai.definePrompt({
   name: 'pdfTaxonomyPrompt',
   input: {schema: PdfTaxonomyInputSchema},
   output: {schema: AIGeneratedOutputSchema},
-  prompt: `You are an expert in document analysis and content structuring, equipped with advanced RAG and semantic clustering capabilities.
+  prompt: `You are an expert in document analysis and content structuring, equipped with advanced RAG and multimodal analysis capabilities.
 Your task is to analyze the provided PDF document and generate a comprehensive, hierarchical taxonomy of its content based on the user's specifications.
 
 **Analysis Parameters:**
@@ -108,15 +120,19 @@ Your task is to analyze the provided PDF document and generate a comprehensive, 
 - **Page Range:** Analyze content from page {{#if pageStart}}{{{pageStart}}}{{else}}1{{/if}} to {{#if pageEnd}}{{{pageEnd}}}{{else}}the end{{/if}}.
 
 **Instructions:**
-1.  **Parse and Extract:** Parse the specified page range of the PDF. Use Retrieval-Augmented Generation (RAG) with semantic clustering to identify and group related concepts, ensuring high context-awareness and coherence.
+1.  **Parse and Extract (Text, Images, Tables):** Parse the specified page range of the PDF. Use Retrieval-Augmented Generation (RAG) with semantic clustering to identify and group related concepts. Analyze text, images, and tables to ensure comprehensive understanding.
 2.  **Identify Structure:** Identify main topics, subtopics, and nested subtopics up to the specified depth.
-3.  **Summarize Concisely:** For each topic, provide a concise 2-3 sentence summary that captures its key points. The summary should be rich with keywords to improve searchability.
-4.  **Assign Confidence Score:** For each topic, assign a confidence score from 0-100 based on the relevance and clarity of the extracted information. A high score indicates a well-defined topic clearly present in the text, while a low score may indicate an inferred topic from ambiguous content.
-5.  **Filter Noise:** Intelligently exclude irrelevant sections like headers, footers, page numbers, tables of contents, and boilerplate text. Focus only on the substantive content.
-6.  **Handle Ambiguity:** If sections are unclear, use contextual reasoning to infer meaningful topics. Prioritize specificity and relevance.
-7.  **Format Output:** Output the taxonomy and metadata as a single, hierarchical JSON object.
-    - The \`taxonomy\` field should be an array of top-level topic objects. Each topic object must have a 'title', 'summary', 'confidenceScore', and an optional 'subtopics' array.
-    - The \`metadata\` field must contain 'numberOfTopics' (a count of all topics and subtopics) and 'pageRangeAnalyzed' (a string describing the pages processed, e.g., "5-12" or "all").
+3.  **Entity-Based Summarization:** For each topic, generate a concise 2-3 sentence summary. **Crucially, prioritize sentences that contain exactly one or two named entities (like people, organizations, or locations).** If no such sentences exist, create a general summary.
+4.  **Image & Table Analysis:**
+    - Identify important images, figures, and tables relevant to each topic.
+    - For each, provide a detailed description. For images, describe what they depict. For tables, summarize their key data and findings.
+    - Populate the \`image_table_info\` field for each topic with this information.
+5.  **Assign Confidence Score:** For each topic, assign a confidence score from 0-100 based on the relevance, clarity of the extracted information, and entity density.
+6.  **Filter Noise:** Intelligently exclude irrelevant sections like headers, footers, page numbers, tables of contents, and boilerplate text. Focus only on the substantive content.
+7.  **Handle Mathematics:** If the document contains mathematical formulas or equations, preserve them accurately in summaries or descriptions where relevant.
+8.  **Format Output:** Output the taxonomy and metadata as a single, hierarchical JSON object.
+    - The \`taxonomy\` field should be an array of top-level topic objects. Each topic object must have a 'title', 'summary', 'confidenceScore', an optional 'subtopics' array, and an optional 'image_table_info' array.
+    - The \`metadata\` field must contain 'numberOfTopics', 'pageRangeAnalyzed', and 'imagesTablesAnalyzed' (a count of all images and tables analyzed).
 
 Here is the PDF Document: {{media url=pdfDataUri}}`,
 });

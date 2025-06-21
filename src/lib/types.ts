@@ -1,8 +1,14 @@
+export interface ImageTableInfo {
+  type: "image" | "table";
+  description: string;
+}
+
 export interface TaxonomyNode {
   title: string;
   summary: string;
   confidenceScore: number;
   subtopics?: TaxonomyNode[];
+  image_table_info?: ImageTableInfo[];
 }
 
 export interface TaxonomyResult {
@@ -11,5 +17,6 @@ export interface TaxonomyResult {
     numberOfTopics: number;
     processingTime: string;
     pageRangeAnalyzed: string;
+    imagesTablesAnalyzed: number;
   };
 }

@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaxonomyDisplay } from "./taxonomy-display";
 import type { TaxonomyResult } from "@/lib/types";
-import { UploadCloud, File, X, AlertCircle, Info } from "lucide-react";
+import { UploadCloud, File, X, AlertCircle, Info, BookOpen, Camera } from "lucide-react";
 
 export function TaxonomyGenerator() {
   const [file, setFile] = useState<File | null>(null);
@@ -188,7 +188,12 @@ export function TaxonomyGenerator() {
                   Topics: {taxonomyResult.metadata.numberOfTopics}
                 </Badge>
                 <Badge variant="outline">
+                  <BookOpen className="mr-1 h-3 w-3" />
                   Pages: {taxonomyResult.metadata.pageRangeAnalyzed}
+                </Badge>
+                <Badge variant="outline">
+                  <Camera className="mr-1 h-3 w-3" />
+                  Visuals: {taxonomyResult.metadata.imagesTablesAnalyzed}
                 </Badge>
                  <Badge variant="outline">
                   Time: {taxonomyResult.metadata.processingTime}
