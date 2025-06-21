@@ -20,7 +20,7 @@ const ImageTableInfoSchema = z.object({
 });
 
 const TaxonomyNodeSchema: z.ZodType<TaxonomyNode> = z.object({
-  title: z.string().describe('The title of the topic or subtopic.'),
+  title: z.string().describe('The title of the topic or subtopic. MUST be extracted from the document.'),
   summary: z
     .string()
     .describe(
@@ -31,16 +31,16 @@ const TaxonomyNodeSchema: z.ZodType<TaxonomyNode> = z.object({
     .min(0)
     .max(100)
     .describe(
-      'A confidence score (0-100) based on the relevance and clarity of the extracted information.'
+      'A confidence score (0-100) representing the relevance and clarity of the extracted topic. MUST be an integer.'
     ),
   subtopics: z
     .array(z.lazy(() => TaxonomyNodeSchema))
     .optional()
-    .describe('A list of nested subtopics, if any.'),
+    .describe('A list of nested subtopics. Create a deep hierarchy (5-6 levels or more) if the document supports it.'),
   image_table_info: z
     .array(ImageTableInfoSchema)
     .optional()
-    .describe('A list of extracted data from relevant images or tables.'),
+    .describe('A list of important images or tables found within this topic. Extract their captions and describe them.'),
 });
 
 const PdfTaxonomyInputSchema = z.object({
@@ -57,19 +57,19 @@ export type PdfTaxonomyInput = z.infer<typeof PdfTaxonomyInputSchema>;
 const AIGeneratedOutputSchema = z.object({
   taxonomy: z
     .array(TaxonomyNodeSchema)
-    .describe('A hierarchical list of top-level topics from the PDF.'),
+    .describe('The complete, hierarchical taxonomy of the PDF. MUST be an array of top-level topics.'),
   metadata: z.object({
     numberOfTopics: z
       .number()
-      .describe('The total number of topics and subtopics identified.'),
+      .describe('The TOTAL number of topics and subtopics identified in the entire taxonomy.'),
     pageRangeAnalyzed: z
       .string()
       .describe(
-        'The page range that was analyzed (e.g., "1-10" or "all").'
+        'The page range that was analyzed (e.g., "1-10" or "all pages").'
       ),
     imagesTablesAnalyzed: z
       .number()
-      .describe('The total number of images and tables analyzed.'),
+      .describe('The total number of images and tables analyzed in the document.'),
   }),
 });
 
@@ -109,29 +109,43 @@ const prompt = ai.definePrompt({
   name: 'pdfTaxonomyPrompt',
   input: {schema: PdfTaxonomyInputSchema},
   output: {schema: AIGeneratedOutputSchema},
-  prompt: `You are an expert in document analysis and content structuring, equipped with advanced RAG and multimodal analysis capabilities.
-Your task is to analyze the provided PDF document and generate a comprehensive, hierarchical taxonomy of its content with an unbounded hierarchy depth.
+  prompt: `You are an expert document analysis system. Your task is to analyze the provided PDF and generate a deep, comprehensive, and hierarchical taxonomy of its content.
 
-**Analysis Parameters:**
-- **Topic Depth:** Generate topics and subtopics to the deepest possible level as inferred from the document's structure and content. Do not limit the depth.
-- **Page Range:** Analyze content from page {{#if pageStart}}{{{pageStart}}}{{else}}1{{/if}} to {{#if pageEnd}}{{{pageEnd}}}{{else}}the end{{/if}}.
+**PRIMARY GOAL: Create a deep, multi-level hierarchy (5-6 levels or more) of topics and subtopics based on the document's structure.**
 
-**Instructions:**
-1.  **Parse and Extract (Text, Images, Tables):** Parse the specified page range of the PDF. Use Retrieval-Augmented Generation (RAG) with advanced semantic clustering to identify and group related concepts. Analyze text, images, and tables to ensure comprehensive understanding.
-2.  **Identify Unbounded Hierarchy:** Identify main topics, subtopics, and nested subtopics, creating as many levels as are present in the document's logical structure.
-3.  **Entity-Based Summarization:** For each topic, generate a concise 2-3 sentence summary. **Crucially, act as if you are using an NLP tool. Prioritize sentences from the document that contain exactly one or two named entities (like people, organizations, locations).** If no such sentences exist, create a general summary based on the most relevant information.
-4.  **Image & Table Analysis:**
-    - Identify important images, figures, and tables relevant to each topic. Prioritize those with high relevance (e.g., containing entities, central to the topic, or frequently referenced).
-    - For each, provide a detailed description. For images, describe what they depict. For tables, summarize their key data and findings.
-    - Populate the \`image_table_info\` field for each topic with this information, including the page number and caption if available.
-5.  **Assign Confidence Score:** For each topic, assign a confidence score from 0-100 based on the relevance, clarity of the extracted information, and entity density.
-6.  **Filter Noise:** Intelligently exclude irrelevant sections like headers, footers, page numbers, tables of contents, and boilerplate text. Focus only on the substantive content.
-7.  **Handle Mathematics:** If the document contains mathematical formulas or equations, preserve them accurately in summaries or descriptions where relevant.
-8.  **Format Output:** Output the taxonomy and metadata as a single, hierarchical JSON object.
-    - The \`taxonomy\` field should be an array of top-level topic objects. Each topic object must have a 'title', 'summary', 'confidenceScore', an optional 'subtopics' array, and an optional 'image_table_info' array.
-    - The \`metadata\` field must contain 'numberOfTopics', 'pageRangeAnalyzed', and 'imagesTablesAnalyzed' (a count of all images and tables analyzed).
+**PDF for Analysis:** {{media url=pdfDataUri}}
+**Page Range:** Analyze from page {{#if pageStart}}{{{pageStart}}}{{else}}1{{/if}} to {{#if pageEnd}}{{{pageEnd}}}{{else}}the final page{{/if}}.
 
-Here is the PDF Document: {{media url=pdfDataUri}}`,
+**DETAILED INSTRUCTIONS:**
+
+1.  **HIERARCHY GENERATION:**
+    *   Analyze the document's headings, sections, and content flow to identify a logical hierarchy.
+    *   Create a tree of topics and subtopics. Do not limit the depth. If the document is well-structured, the hierarchy should be at least 5-6 levels deep.
+    *   The output must be a tree structure, with subtopics nested inside their parent topics.
+
+2.  **CONTENT ANALYSIS & SUMMARIZATION:**
+    *   For **EACH** topic and subtopic in the hierarchy, you MUST provide a \`title\` and a \`summary\`.
+    *   **Title:** The title must be extracted directly from the document's headings or be a concise label for the topic.
+    *   **Summary:** Generate a 2-3 sentence summary. This summary must be dense with keywords to be useful for searching.
+    *   **Confidence Score:** Assign a confidence score (0-100) based on how clearly the topic is defined in the source text.
+
+3.  **MULTIMODAL ANALYSIS (IMAGES & TABLES):**
+    *   Identify important images, figures, and tables that are relevant to each topic.
+    *   For each relevant image or table, extract its caption (if available), page number, and provide a detailed description of what it shows or what data it contains.
+    *   Add this information to the \`image_table_info\` array for the corresponding topic.
+
+4.  **QUALITY CONTROL:**
+    *   **Filter Noise:** Your analysis MUST ignore irrelevant content like page numbers, running headers/footers, and boilerplate text. Focus only on the main substance of the document.
+    *   **Accuracy:** Ensure all information (titles, summaries, data) is faithful to the source document.
+    *   **Mathematical Content:** If you encounter mathematical formulas or equations, preserve them accurately in your summaries or descriptions.
+
+5.  **METADATA:**
+    *   After generating the full taxonomy, calculate the required metadata:
+        *   \`numberOfTopics\`: The total count of ALL topics and subtopics in the entire tree.
+        *   \`pageRangeAnalyzed\`: The range of pages you analyzed.
+        *   \`imagesTablesAnalyzed\`: The total count of all images and tables you analyzed.
+
+**FINAL OUTPUT:** You must respond with a single, valid JSON object that strictly adheres to the output schema. The root of the JSON should contain the \`taxonomy\` and \`metadata\` fields.`,
 });
 
 const generatePdfTaxonomyFlow = ai.defineFlow(
