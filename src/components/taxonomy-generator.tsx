@@ -88,7 +88,11 @@ export function TaxonomyGenerator() {
 
       } catch (e) {
         console.error(e);
-        setError("An error occurred during taxonomy generation. Please try again.");
+        let errorMessage = "An error occurred during taxonomy generation. Please try again.";
+        if (e instanceof Error && (e.message.includes('503') || e.message.toLowerCase().includes('overloaded'))) {
+          errorMessage = "The AI service is currently busy. Please wait a moment and try again.";
+        }
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
