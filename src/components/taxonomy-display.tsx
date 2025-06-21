@@ -27,7 +27,7 @@ export function TaxonomyDisplay({ data }: TaxonomyDisplayProps) {
 
   return (
     <Accordion type="multiple" className="w-full">
-      {data.map((item, index) => (
+      {data.filter(Boolean).map((item, index) => (
         <AccordionItem value={`item-${item.title || 'item'}-${index}`} key={`key-${item.title || 'item'}-${index}`}>
           <AccordionTrigger className="text-left hover:no-underline">
             <div className="flex items-center justify-between w-full gap-3">
@@ -54,7 +54,7 @@ export function TaxonomyDisplay({ data }: TaxonomyDisplayProps) {
                 <div className="space-y-3">
                   <h4 className="font-semibold font-headline text-sm">Visual Content Analysis</h4>
                   <ul className="space-y-2">
-                  {item.image_table_info.map((info, infoIndex) => (
+                  {item.image_table_info.filter(Boolean).map((info, infoIndex) => (
                     <li key={infoIndex} className="flex items-start gap-3 p-3 rounded-md bg-muted/50">
                       {info.type === 'image' ? 
                         <Image className="h-5 w-5 text-accent flex-shrink-0 mt-1" /> : 
